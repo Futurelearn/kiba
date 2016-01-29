@@ -20,6 +20,23 @@ class TestRunner < Kiba::Test
     control
   end
 
+#  class Future
+#    def initialize(&block)
+#      @block = block
+#    end
+#
+#    def value
+#      @block.call
+#    end
+#  end
+#
+#  def test_concurrent_row_transform
+#    control.use_concurrent_row_transform
+#
+#    Future.
+#
+#  end
+
   def test_block_transform_processing
     # is there a better way to assert a block was called in minitest?
     control.transforms << { block: lambda { |r| @called = true; r } }

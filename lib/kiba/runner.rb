@@ -1,3 +1,5 @@
+require 'celluloid/current'
+
 module Kiba
   module Runner
     # allow to handle a block form just like a regular transform
@@ -10,11 +12,20 @@ module Kiba
       # that will validate the job definition from a syntax pov before
       # going any further. This could be shared with the parser.
       run_pre_processes(control)
-      process_rows(
-        to_instances(control.sources),
-        to_instances(control.transforms, true),
-        to_instances(control.destinations)
-      )
+      if control.process_rows_concurrently?
+        process_rows_concurrently(
+          to_instances(control.sources),
+          to_instances(control.transforms, true),
+          to_instances(control.destinations)
+        )
+      else
+        process_rows(
+          to_instances(control.sources),
+          to_instances(control.transforms, true),
+          to_instances(control.destinations)
+        )
+      end
+
       # TODO: when I add post processes as class, I'll have to add a test to
       # make sure instantiation occurs after the main processing is done (#16)
       run_post_processes(control)
@@ -26,6 +37,64 @@ module Kiba
 
     def run_post_processes(control)
       to_instances(control.post_processes, true, false).each(&:call)
+    end
+
+    class DestinationWriter
+      include Celluloid
+
+      def initialize(destinations)
+        @destinations = destinations
+      end
+
+      def write(row)
+        destinations.each do |destination|
+          destination.write(row)
+        end
+      end
+
+      def done
+        destinations.each(&:close)
+        self.terminate
+      end
+
+      attr_reader :destinations
+    end
+
+    class Transformer
+      include Celluloid
+
+      def initialize(transforms, destination)
+        @transforms = transforms
+        @destination = destination
+      end
+
+      def transform(row)
+        transforms.each do |transform|
+          row = transform.process(row)
+          break unless row
+        end
+
+        if row
+          destination.write(row)
+        end
+      end
+
+      attr_reader :transforms, :destination
+    end
+
+    def process_rows_concurrently(sources, transforms, destinations)
+      writer = DestinationWriter.new(destinations)
+      transformer_pool = Transformer.pool(args: [ transforms, writer ])
+
+      futures = []
+      sources.each do |source|
+        source.each do |row|
+          futures << transformer_pool.future.transform(row)
+        end
+      end
+
+      futures.map(&:value)
+      writer.done
     end
 
     def process_rows(sources, transforms, destinations)

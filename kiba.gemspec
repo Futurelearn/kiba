@@ -14,6 +14,8 @@ Gem::Specification.new do |gem|
   gem.version       = Kiba::VERSION
   gem.executables   = ['kiba']
 
+  gem.add_dependency 'celluloid', '0.17.3'
+
   gem.add_development_dependency 'rake'
   gem.add_development_dependency 'minitest'
   gem.add_development_dependency 'awesome_print'

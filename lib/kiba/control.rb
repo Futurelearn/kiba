@@ -1,15 +1,15 @@
 module Kiba
   class Control
     def initialize
-      @use_concurrent_row_processing = false
+      @use_concurrent_row_transform = false
     end
 
-    def use_concurrent_row_processing
-      @use_concurrent_row_processing = true
+    def use_concurrent_row_transform
+      @use_concurrent_row_transform = true
     end
 
     def process_rows_concurrently?
-      @use_concurrent_row_processing
+      @use_concurrent_row_transform
     end
 
     def pre_processes

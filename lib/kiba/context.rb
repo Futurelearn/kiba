@@ -23,5 +23,9 @@ module Kiba
     def post_process(&block)
       @control.post_processes << { block: block }
     end
+
+    def use_concurrent_row_transform
+      @control.use_concurrent_row_transform
+    end
   end
 end
